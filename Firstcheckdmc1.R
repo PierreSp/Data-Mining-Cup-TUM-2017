@@ -1,21 +1,3 @@
-# Import data
-df <- read.csv("DMC1/training_yzCDTHz.csv")
-
-# first summary:
-
-summary(df)
-
-# Observerations:
-# Outcome many NA
-
-# Create new field duration (is duration of the phonecall) Bucketize?
-as.difftime(c(df$CallStart[1], df$CallEnd[1]), units = "mins")
-
-
-
-
-
-
 # Business Analytics
 # Data Mining Cup Introduction
 #
@@ -42,7 +24,14 @@ set.seed(42) # do NOT CHANGE this seed
 
 ######################################################
 # 2. Load & Explore the Training Data Set
-training_data = read.csv("raw_data_large.csv", sep=";")
+# Import data
+df <- read.csv("DMC1/training_yzCDTHz.csv")
+
+# Create new field duration (is duration of the phonecall) Bucketize?
+timediff = as.numeric(strptime(df$CallEnd,format="%H:%M:%S") - strptime(df$CallStart,format="%H:%M:%S"))
+
+# Create training data and add timediff
+training_data = data.frame(df, timediff)
 
 # Show the structure
 str(training_data)
