@@ -8,10 +8,16 @@
 # install.packages("lubridate")
 # install.packages("arules")
 # install.packages("FSelector")
+# install.packages("data.table")
+# install.packages("dplyr")
+# install.packages("magrittr")
 library(FSelector)
 library(arules)
 library(caret)
 library(lubridate)
+library(data.table)
+library(dplyr)
+library(magrittr)
 # library(doMC)
 # registerDoMC(cores = 24)
 #clear environment variables
@@ -230,41 +236,54 @@ formula_with_most_important_attributes
 ######################################################
 # 4. Training & Evaluation
 # 10 x 10-fold cross validation
-fitCtrl = trainControl(method="repeatedcv", number=5, repeats=3, allowParallel = TRUE)
+fitCtrl = trainControl(method="repeatedcv", number=10, repeats=5)
 
-# information about decision tree parameters
-getModelInfo()$J48$parameters
+# training a list of models using the metric "Accuracy"
+method_list <- c("J48", "OneR", "LogitBoost")
+library(parallel)
+par_train_and_compare <- function(data, formula, list_of_methods, trControl){
+  no_cores <- detectCores() - 1
+  cl <- makeCluster(no_cores)
+  clusterEvalQ(cl, {
+    library(caret)
+  })
+  clusterExport(cl, c(
+    "data",
+    "formula",
+    "list_of_methods",
+    "trControl"),
+    envir=environment())
+  models <- parLapply(cl = cl,
+                      list_of_methods,
+                      function(x){
+                        train(formula,
+                              data=data,
+                              method=x,
+                              trControl=trControl,
+                              metric="Accuracy",
+                              na.action = na.pass)
+                      })
+  stopCluster(cl)
+  return(models)
+}
+models <- par_train_and_compare(
+  training_data,
+  formula_with_most_important_attributes,
+  method_list,
+  fitCtrl)
 
-# training a decision tree with specific parameters using the metric "Accuracy"
-# modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
-#                 tuneGrid=data.frame(C=c(0.1, 0.2, 0.3),M=c(2,2,2)),na.action = na.pass)
-modelDT = train(CarInsurance ~ .^2, data=training_data, method="J48",
-                na.action = na.pass)
 
-modelDT
-# training a decision tree, one rule and boosting models using the metric "Accuracy"
-modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48", trControl=fitCtrl, metric="Accuracy",na.action = na.pass)
-modelOneR = train(formula_with_most_important_attributes, data=training_data, method="OneR", trControl=fitCtrl, metric="Accuracy",na.action = na.pass)
-modelBoost = train(formula_with_most_important_attributes, data=training_data, method="LogitBoost", trControl=fitCtrl, metric="Accuracy",na.action = na.pass)
+# Compare results of different models by Accuracy and return best
+get_best_model <- function(models, methods){
+  res <- resamples(models)
+  vals <- res$values %>% select(ends_with("Accuracy"))
+  
+  # Winning model:
+  winner_nr <- vals %>% colMeans %>% which.max
+  return(models[winner_nr][[1]])
+}
 
-# Show results and metrics
-modelOneR
-modelOneR$results
-
-
-# Show decision tree
-modelDT$finalModel
-
-# Compare results of different models
-res = resamples(list(dt=modelDT,oneR=modelOneR, boost=modelBoost))
-summary(res)
-
-# Show confusion matrix (in percent)
-confusionMatrix(modelDT)
-confusionMatrix(modelBoost)
-confusionMatrix(modelOneR)
-
-
+get_best_model(model)
 ######################################################
 # 5. Predict Classes in Test Data
 prediction_classes = predict.train(object=modelDT, newdata=test_data, na.action=na.pass)
