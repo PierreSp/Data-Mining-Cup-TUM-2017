@@ -54,9 +54,10 @@ get_weekday <- function(month, day){
   return(weekday)
 }
 
+
 make_ordinal <- function(train, test, columns){
-  Levels = eval(parse(text=paste0("sort(unique(c(as.numeric(training_data$",col,"), as.numeric(test_data$",col,"))))")))
   for (col in columns){
+    Levels = eval(parse(text=paste0("sort(unique(c(as.numeric(training_data$",col,"), as.numeric(test_data$",col,"))))")))
     eval(parse(text=paste0("train$", col, " = ordered(training_data$", col,", levels=",Levels,")")))
     eval(parse(text=paste0("test$", col, " = ordered(test_data$",col,", levels=",Levels,")")))
   }
@@ -64,8 +65,8 @@ make_ordinal <- function(train, test, columns){
 }
 
 make_nominal <- function(train, test, columns){
-  Levels = eval(parse(text=paste0("unique(c(as.numeric(training_data$",col,"), as.numeric(test_data$",col,")))")))
   for (col in columns){
+    Levels = eval(parse(text=paste0("unique(c(as.numeric(training_data$",col,"), as.numeric(test_data$",col,")))")))
     eval(parse(text=paste0("train$", col, " = factor(training_data$", col,", levels=",Levels,", labels=",Levels,")")))
     eval(parse(text=paste0("test$", col, " = factor(test_data$",col,", levels=",Levels,", labels=",Levels,")")))
   }
@@ -135,8 +136,8 @@ test_data$CarLoan = factor(test_data$CarLoan, levels=0:1, labels=Carlevels)
 
 # Ordinal attributes
 
-# to_ordinaize = c("NoOfContacts", "Age", "PrevAttempts")
-# orddata = make_ordinal(training_data, test_data, to_ordinaize)
+to_ordinaize = c("NoOfContacts", "Age", "PrevAttempts")
+orddata = make_ordinal(training_data, test_data, to_ordinaize)
 
 NoContracts = sort(unique(c(as.numeric(training_data$NoOfContacts), as.numeric(test_data$NoOfContacts))))
 training_data$NoOfContacts = ordered(training_data$NoOfContacts, levels=NoContracts)
@@ -158,11 +159,11 @@ test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
 # Binning/Discretization
 
 # # equal frequency binning
-# equal_frequency_cuts_delivery_time = discretize(training_data$delivery_time, categories=5, method="frequency", onlycuts=TRUE)
-# training_data$delivery_time_discret_ef = cut(training_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
-# test_data$delivery_time_discret_ef = cut(test_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
-# table(training_data$delivery_time_discret_ef, useNA="ifany")
-# str(training_data)
+equal_frequency_cuts_age= discretize(as.numeric(training_data$Age), categories=5, method="frequency", onlycuts=TRUE)
+training_data$age_discret_ef = cut(as.numeric(training_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
+test_data$age_discret_ef = cut(as.numeric(test_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
+table(training_data$age_discret_ef, useNA="ifany")
+str(training_data)
 # # equal width binning: with method "interval"
 # 
 # 
@@ -210,12 +211,12 @@ formula_with_most_important_attributes
 fitCtrl = trainControl(method="repeatedcv", number=10, repeats=3, allowParallel = TRUE)
 
 # information about decision tree parameters
-getModelInfo()$J48$parameters
+getModelInfo()$svmRadialSigma$parameters
 
 # training a decision tree with specific parameters using the metric "Accuracy"
 # modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
 #                 tuneGrid=data.frame(C=c(0.1, 0.2, 0.3),M=c(2,2,2)),na.action = na.pass)
-modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
+modelDT = train(formula_with_most_important_attributes, data=training_data, method="svmRadialSigma",
                 na.action = na.pass)
 
 modelDT
