@@ -6,12 +6,48 @@
 # The caret package is used (http://topepo.github.io/caret/index.html)
 #install.packages("caret")
 library(caret)
+library(lubridate)
 
 #clear environment variables
 rm(list=ls())
 
 # For reasons of traceability you must use a fixed seed
 set.seed(42) # do NOT CHANGE this seed
+
+
+##############
+# Functions
+##############
+
+##############
+# Feature manipulation
+##############ä
+
+get_time_diff <- function(start, end){
+  timediff = as.numeric(strptime(end,format="%H:%M:%S") - strptime(start,format="%H:%M:%S"))
+  return(timediff)
+}
+
+get_weekday <- function(month, day){
+  month = as.character(month)
+  day = as.character(day)
+  month = gsub("jan","01", month)
+  month = gsub("feb","02", month)
+  month = gsub("mar","03", month)
+  month = gsub("apr","04", month)
+  month = gsub("may","05", month)
+  month = gsub("jun","06", month)
+  month = gsub("jul","07", month)
+  month = gsub("aug","08", month)
+  month = gsub("sep","09", month)
+  month = gsub("oct","10", month)
+  month = gsub("nov","11", month)
+  month = gsub("dec","12", month)
+  convdate = ISOdate("2015", month, day)
+  weekday = wday(convdate, label = TRUE)
+  return(weekday)
+}
+
 
 
 ######################################################
@@ -25,153 +61,50 @@ set.seed(42) # do NOT CHANGE this seed
 ######################################################
 # 2. Load & Explore the Training Data Set
 # Import data
-df <- read.csv("DMC1/training_yzCDTHz.csv")
+training_data <- read.csv("DMC1/training_yzCDTHz.csv")
+test_data <- read.csv("DMC1/pub_ZaGS0Z2.csv")
 
-# Create new field duration (is duration of the phonecall) Bucketize?
-timediff = as.numeric(strptime(df$CallEnd,format="%H:%M:%S") - strptime(df$CallStart,format="%H:%M:%S"))
 
-# Create training data and add timediff
-training_data = data.frame(df, timediff)
-
-# Show the structure
-str(training_data)
-
-# Size
-nrow(training_data)
-ncol(training_data)
-
-# Show the first and last rows
-head(training_data)
-tail(training_data)
-
-# Show columns with missing values
-colSums(is.na(training_data))
-
-# Explore the class column
-table(training_data$a9)
-
-# Explore the price column
-mean(training_data$price)
-# mean without N/A values
-mean(training_data$price, na.rm=TRUE)
-
-aggregate(x=training_data$price, by=list(training_data$a9), FUN=mean, na.rm=TRUE)
-
-hist(training_data$price)
-boxplot(training_data$price ~ training_data$a9)
 
 
 ######################################################
 # 3. Data Preparation
 # (using both training and test data)
 # do NOT DELETE any instances in the test data
-test_data = read.csv("test.csv", sep=",")
 
-# Rename columns
-names(training_data)
-names(training_data)[names(training_data) == "od"] = "order_date"
-names(test_data)[names(test_data) == "od"] = "order_date"
+# Create new field duration (is duration of the phonecall) Bucketize?
+timedifftrain = get_time_diff(training_data$CallStart, training_data$CallEnd)
+timedifftest = get_time_diff(test_data$CallStart, test_data$CallEnd)
 
-names(training_data)[names(training_data) == "dd"] = "delivery_date"
-names(test_data)[names(test_data) == "dd"] = "delivery_date"
+# Find weekdays
 
-names(training_data)[names(training_data) == "a6"] = "salutation"
-names(test_data)[names(test_data) == "a6"] = "salutation"
+weekdaytrain = get_weekday(training_data$LastContactMonth, training_data$LastContactDay)
+weekdaytest = get_weekday(test_data$LastContactMonth, test_data$LastContactDay)
 
-names(training_data)[names(training_data) == "a7"] = "date_of_birth"
-names(test_data)[names(test_data) == "a7"] = "date_of_birth"
+# Add timediff and weekday
+training_data = data.frame(training_data, "timediff"=timedifftrain, "weekday"=weekdaytrain)
+test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=weekdaytest)
 
-names(training_data)[names(training_data) == "a8"] = "state"
-names(test_data)[names(test_data) == "a8"] = "state"
-
-names(training_data)[names(training_data) == "a9"] = "return_shipment"
-names(test_data)[names(test_data) == "a9"] = "return_shipment"
 
 # Nominal attributes
-table(training_data$salutation)
-table(test_data$salutation)
-SALUTATION_LEVELS = c("Company", "Mr.", "Mrs.")
-training_data$salutation = factor(training_data$salutation, levels=2:4, labels=SALUTATION_LEVELS)
-test_data$salutation = factor(test_data$salutation, levels=2:4, labels=SALUTATION_LEVELS)
-table(training_data$salutation)
-table(test_data$salutation)
 
-# If a nominal or ordinal column in the test data set contains more levels than the corresponding column in the training data set, you can add levels to the column in the training data set manually using the following command:
+Defaultlevels = c("NonDef", "Def")
+training_data$Default = factor(training_data$Default, levels=0:1, labels=Defaultlevels)
+test_data$Default = factor(test_data$Default, levels=0:1, labels=Defaultlevels)
+
+
+# If a nominal or ordinal column in the test data set contains more levels thanwk  the corresponding column in the training data set, you can add levels to the column in the training data set manually using the following command:
 #training_data$salutation = factor(training_data$salutation, levels=c(levels(training_data$salutation), "Family"))
 
-table(training_data$state)
-table(test_data$state)
-STATE_LEVELS = c("BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV", "NI", "NW", "RP", "SL", "SN", "ST", "SH", "TH")
-training_data$state = factor(training_data$state, levels=1:16, labels=STATE_LEVELS)
-test_data$state = factor(test_data$state, levels=1:16, labels=STATE_LEVELS)
-table(training_data$state)
-table(test_data$state)
 
-RETURN_LEVELS = c("0", "1")
-training_data$return_shipment = factor(training_data$return_shipment, labels=RETURN_LEVELS)
-#test_data$return_shipment = factor(test_data$return_shipment, labels=RETURN_LEVELS)
+HHlevels = c("NonIns", "Ins")
+training_data$HHInsurance = factor(training_data$HHInsurance, levels=0:1, labels=HHlevels)
+test_data$HHInsurance = factor(test_data$HHInsurance, levels=0:1, labels=HHlevels)
 
-# Unify "size" column
-table(training_data$size)
-training_data$size = toupper(training_data$size)
-test_data$size = toupper(test_data$size)
-table(training_data$size)
+Carlevels = c("Nonloan", "Loan")
+training_data$CarLoan = factor(training_data$CarLoan, levels=0:1, labels=Carlevels)
+test_data$CarLoan = factor(test_data$CarLoan, levels=0:1, labels=Carlevels)
 
-# Convert "size" to ordinal
-SIZE_LEVELS = c("S", "M", "L", "XL", "XXL", "XXXL")
-training_data$size = ordered(training_data$size, levels=SIZE_LEVELS)
-test_data$size = ordered(test_data$size, levels=SIZE_LEVELS)
-
-# Date attributes
-date_format = "%Y-%m-%d"
-training_data$order_date = as.Date(training_data$order_date, date_format)
-test_data$order_date = as.Date(test_data$order_date, date_format)
-
-training_data$delivery_date = as.Date(training_data$delivery_date, date_format)
-test_data$delivery_date = as.Date(test_data$delivery_date, date_format)
-
-training_data$date_of_birth = as.Date(training_data$date_of_birth, date_format)
-test_data$date_of_birth = as.Date(test_data$date_of_birth, date_format)
-
-
-training_data$order_date_weekday = weekdays(training_data$order_date)
-test_data$order_date_weekday = weekdays(test_data$order_date)
-
-training_data$order_date_year = as.numeric(format(training_data$order_date, "%Y"))
-test_data$order_date_year = as.numeric(format(test_data$order_date, "%Y"))
-
-training_data$order_date_month = as.numeric(format(training_data$order_date, "%m"))
-test_data$order_date_month = as.numeric(format(test_data$order_date, "%m"))
-
-training_data$order_date_day = as.numeric(format(training_data$order_date, "%d"))
-test_data$order_date_day = as.numeric(format(test_data$order_date, "%d"))
-
-training_data$order_date_quarter = ceiling(as.numeric(format(training_data$order_date, "%m")) / 3)
-test_data$order_date_quarter = ceiling(as.numeric(format(test_data$order_date, "%m")) / 3)
-
-# as an alternative regarding date values you could also use the "lubridate" package
-
-
-# Calculate new column "delivery time" as difference of order and delivery dates in days
-training_data$delivery_time = as.numeric(training_data$delivery_date - training_data$order_date)
-test_data$delivery_time = as.numeric(test_data$delivery_date - test_data$order_date)
-
-hist(training_data$delivery_time)
-table(training_data$delivery_time, useNA="ifany")
-
-# Negative delivery time is impossible
-training_data$order_date[training_data$delivery_time < 0] = NA
-test_data$order_date[test_data$delivery_time < 0] = NA
-
-training_data$delivery_date[training_data$delivery_time < 0] = NA
-test_data$delivery_date[test_data$delivery_time < 0] = NA
-
-training_data$delivery_time[training_data$delivery_time < 0] = NA
-test_data$delivery_time[test_data$delivery_time < 0] = NA
-
-hist(training_data$delivery_time)
-table(training_data$delivery_time, useNA="ifany")
-boxplot(training_data$delivery_time ~ training_data$return_shipment)
 
 # Manual discretization of "delivery time"
 training_data$delivery_time_discret = factor(rep("NA", nrow(training_data)), levels=c("NA", "<= 5d", "> 5d"))
@@ -262,7 +195,7 @@ modelOneR$results
 modelDT$finalModel
 
 # Compare results of different models
-res = resamples(list(dt=modelDT,oneR=modelOneR, boost =modelBoost))
+res = resamples(list(dt=modelDT,oneR=modelOneR, boost=modelBoost))
 summary(res)
 
 # Show confusion matrix (in percent)
