@@ -4,10 +4,16 @@
 # Please note, that this script only has the nature of proposal. It provides useful functions for the steps of data mining but does not cover all possibilities.
 
 # The caret package is used (http://topepo.github.io/caret/index.html)
-#install.packages("caret")
+# install.packages("caret")
+# install.packages("lubridate")
+# install.packages("arules")
+# install.packages("FSelector")
+library(FSelector)
+library(arules)
 library(caret)
 library(lubridate)
-
+library(doMC)
+registerDoMC(cores = 24)
 #clear environment variables
 rm(list=ls())
 
@@ -48,6 +54,23 @@ get_weekday <- function(month, day){
   return(weekday)
 }
 
+make_ordinal <- function(train, test, columns){
+  Levels = eval(parse(text=paste0("sort(unique(c(as.numeric(training_data$",col,"), as.numeric(test_data$",col,"))))")))
+  for (col in columns){
+    eval(parse(text=paste0("train$", col, " = ordered(training_data$", col,", levels=",Levels,")")))
+    eval(parse(text=paste0("test$", col, " = ordered(test_data$",col,", levels=",Levels,")")))
+  }
+  return(list(train, test))
+}
+
+make_nominal <- function(train, test, columns){
+  Levels = eval(parse(text=paste0("unique(c(as.numeric(training_data$",col,"), as.numeric(test_data$",col,")))")))
+  for (col in columns){
+    eval(parse(text=paste0("train$", col, " = factor(training_data$", col,", levels=",Levels,", labels=",Levels,")")))
+    eval(parse(text=paste0("test$", col, " = factor(test_data$",col,", levels=",Levels,", labels=",Levels,")")))
+  }
+  return(list(train, test))
+}
 
 
 ######################################################
@@ -90,6 +113,14 @@ test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=weekdaytest
 
 # Nominal attributes
 
+# to_nominalize = c("Default", "HHInsurance", "CarLoan")
+# nomdata = make_nominal(training_data, test_data, to_nominalize)
+
+CarInsLevel = c("0", "1")
+training_data$CarInsurance = factor(training_data$CarInsurance, levels=0:1, labels=CarInsLevel)
+test_data$CarInsurance = factor(test_data$CarInsurance, levels=0:1, labels=CarInsLevel)
+
+
 Defaultlevels = c("NonDef", "Def")
 training_data$Default = factor(training_data$Default, levels=0:1, labels=Defaultlevels)
 test_data$Default = factor(test_data$Default, levels=0:1, labels=Defaultlevels)
@@ -102,28 +133,30 @@ Carlevels = c("Nonloan", "Loan")
 training_data$CarLoan = factor(training_data$CarLoan, levels=0:1, labels=Carlevels)
 test_data$CarLoan = factor(test_data$CarLoan, levels=0:1, labels=Carlevels)
 
-# Ordinnal attributes
+# Ordinal attributes
 
-NoContracts = 0:43
+# to_ordinaize = c("NoOfContacts", "Age", "PrevAttempts")
+# orddata = make_ordinal(training_data, test_data, to_ordinaize)
+
+NoContracts = sort(unique(c(as.numeric(training_data$NoOfContacts), as.numeric(test_data$NoOfContacts))))
 training_data$NoOfContacts = ordered(training_data$NoOfContacts, levels=NoContracts)
 test_data$NoOfContacts = ordered(test_data$NoOfContacts, levels=NoContracts)
 
-PassedDays = -1:854
-training_data$DaysPassed = ordered(training_data$DaysPassed, levels=PassedDays)
-test_data$DaysPassed = ordered(test_data$DaysPassed, levels=PassedDays)
+# PassedDays = sort(unique(c(as.numeric(training_data$DaysPassed), as.numeric(test_data$DaysPassed))))
+# training_data$DaysPassed = ordered(training_data$DaysPassed, levels=PassedDays)
+# test_data$DaysPassed = ordered(test_data$DaysPassed, levels=PassedDays)
 
-AgeLevels = 18:95
+AgeLevels = sort(unique(c(as.numeric(training_data$Age), as.numeric(test_data$Age))))
 training_data$Age = ordered(training_data$Age, levels=AgeLevels)
 test_data$Age = ordered(test_data$Age, levels=AgeLevels)
 
-PrevLevels = 0:58
+PrevLevels = sort(unique(c(as.numeric(training_data$PrevAttempts), as.numeric(test_data$PrevAttempts))))
 training_data$PrevAttempts = ordered(training_data$PrevAttempts, levels=PrevLevels)
 test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
 
 
 # Binning/Discretization
-# install.packages("arules")
-library(arules)
+
 # # equal frequency binning
 # equal_frequency_cuts_delivery_time = discretize(training_data$delivery_time, categories=5, method="frequency", onlycuts=TRUE)
 # training_data$delivery_time_discret_ef = cut(training_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
@@ -134,18 +167,18 @@ library(arules)
 # 
 # 
 # Multicollinearity
-numeric_columns = c("Age", "Balance", "NoOfContacts", "DaysPassed")
-# these columns also contain N/A values --> the option "pairwise.complete.obs" should be used
-numeric_columns_correlation = cor(training_data[, numeric_columns], use="pairwise.complete.obs")
-numeric_columns_correlation
-# works for non-N/A only (remove N/A rows or fill with mean, median, etc)
-high_cor_columns = findCorrelation(numeric_columns_correlation)
-high_cor_columns
-# "price" and "tax" are perfectly correlated --> remove "tax" column
-training_data$tax = NULL
-test_data$tax = NULL
-
-colSums(is.na(training_data))
+# numeric_columns = c("Age", "Balance")
+# # these columns also contain N/A values --> the option "pairwise.complete.obs" should be used
+# numeric_columns_correlation = cor(training_data[, numeric_columns], use="pairwise.complete.obs")
+# numeric_columns_correlation
+# # works for non-N/A only (remove N/A rows or fill with mean, median, etc)
+# high_cor_columns = findCorrelation(numeric_columns_correlation)
+# high_cor_columns
+# # "price" and "tax" are perfectly correlated --> remove "tax" column
+# training_data$tax = NULL
+# test_data$tax = NULL
+# 
+# colSums(is.na(training_data))
 
 # another package for binning/discretization would be the "discretization" package
 # some classifiers use built-in supervised binning, i.e. entropy-based binning
@@ -153,8 +186,7 @@ colSums(is.na(training_data))
 
 
 # Feature Selection
-#install.packages("FSelector")
-library(FSelector)
+
 
 # training_data$delivery_date=NULL
 
@@ -165,7 +197,7 @@ weights_gain_ratio = gain.ratio(CarInsurance ~ ., data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 12)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 5)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
@@ -175,15 +207,18 @@ formula_with_most_important_attributes
 ######################################################
 # 4. Training & Evaluation
 # 10 x 10-fold cross validation
-fitCtrl = trainControl(method="repeatedcv", number=10, repeats=10)
+fitCtrl = trainControl(method="repeatedcv", number=10, repeats=3, allowParallel = TRUE)
 
 # information about decision tree parameters
 getModelInfo()$J48$parameters
 
 # training a decision tree with specific parameters using the metric "Accuracy"
+# modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
+#                 tuneGrid=data.frame(C=c(0.1, 0.2, 0.3),M=c(2,2,2)),na.action = na.pass)
 modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
-                tuneGrid=data.frame(C=c(0.1, 0.2, 0.3),M=c(2,2,2)),na.action = na.pass)
+                na.action = na.pass)
 
+modelDT
 # training a decision tree, one rule and boosting models using the metric "Accuracy"
 modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48", trControl=fitCtrl, metric="Accuracy",na.action = na.pass)
 modelOneR = train(formula_with_most_important_attributes, data=training_data, method="OneR", trControl=fitCtrl, metric="Accuracy",na.action = na.pass)
