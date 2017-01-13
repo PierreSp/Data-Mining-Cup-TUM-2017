@@ -12,8 +12,8 @@ library(FSelector)
 library(arules)
 library(caret)
 library(lubridate)
-library(doMC)
-registerDoMC(cores = 24)
+# library(doMC)
+# registerDoMC(cores = 24)
 #clear environment variables
 rm(list=ls())
 
@@ -158,11 +158,24 @@ test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
 
 # Binning/Discretization
 
-# # equal frequency binning
+# equal frequency binning
+# Age Binning
 equal_frequency_cuts_age= discretize(as.numeric(training_data$Age), categories=5, method="frequency", onlycuts=TRUE)
 training_data$age_discret_ef = cut(as.numeric(training_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
 test_data$age_discret_ef = cut(as.numeric(test_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
-table(training_data$age_discret_ef, useNA="ifany")
+
+# Timediff binning
+equal_frequency_cuts_td= discretize(as.numeric(training_data$timediff), categories=10, method="frequency", onlycuts=TRUE)
+training_data$td_discret_ef = cut(as.numeric(training_data$timediff), breaks=equal_frequency_cuts_td, ordered_result=TRUE, right=FALSE)
+test_data$td_discret_ef = cut(as.numeric(test_data$timediff), breaks=equal_frequency_cuts_td, ordered_result=TRUE, right=FALSE)
+table(training_data$td_discret_ef, useNA="ifany")
+str(training_data)
+
+# Passed Day binning
+equal_frequency_cuts_pd= discretize(as.numeric(training_data$DaysPassed), categories=10, method="frequency", onlycuts=TRUE)
+training_data$td_discret_pd = cut(as.numeric(training_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
+test_data$td_discret_pd = cut(as.numeric(test_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
+table(training_data$td_discret_pd, useNA="ifany")
 str(training_data)
 # # equal width binning: with method "interval"
 # 
@@ -192,10 +205,9 @@ str(training_data)
 # training_data$delivery_date=NULL
 
 # Calculate weights for the attributes using Info Gain and Gain Ratio
-weights_info_gain = information.gain(CarInsurance ~ ., data=training_data)
+weights_info_gain = information.gain(CarInsurance ~ .^3 , data=training_data)
 weights_info_gain
-weights_gain_ratio = gain.ratio(CarInsurance ~ ., data=training_data)
-weights_gain_ratio
+
 
 # Select the most important attributes based on Gain Ratio
 most_important_attributes <- cutoff.k(weights_gain_ratio, 5)
@@ -216,7 +228,7 @@ getModelInfo()$svmRadialSigma$parameters
 # training a decision tree with specific parameters using the metric "Accuracy"
 # modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
 #                 tuneGrid=data.frame(C=c(0.1, 0.2, 0.3),M=c(2,2,2)),na.action = na.pass)
-modelDT = train(formula_with_most_important_attributes, data=training_data, method="svmRadialSigma",
+modelDT = train(CarInsurance ~ .^2, data=training_data, method="svmRadialSigma",
                 na.action = na.pass)
 
 modelDT
