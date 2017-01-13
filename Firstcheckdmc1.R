@@ -204,13 +204,23 @@ str(training_data)
 
 # training_data$delivery_date=NULL
 
-# Calculate weights for the attributes using Info Gain and Gain Ratio
-weights_info_gain = information.gain(CarInsurance ~ .^3 , data=training_data)
-weights_info_gain
 
+# DROP COLUMNS
+training_data$CallStart=NULL
+test_data$CallStart=NULL
+training_data$CallEnd=NULL
+test_data$CallEnd=NULL
+training_data$timediff=NULL
+test_data$timediff=NULL
+
+# Calculate weights for the attributes using Info Gain and Gain Ratio
+weights_info_gain = information.gain(CarInsurance ~ .^2 , data=training_data)
+weights_info_gain
+weights_gain_ratio = gain.ratio(CarInsurance ~ .^2 , data=training_data)
+weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 5)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 13)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
@@ -220,15 +230,15 @@ formula_with_most_important_attributes
 ######################################################
 # 4. Training & Evaluation
 # 10 x 10-fold cross validation
-fitCtrl = trainControl(method="repeatedcv", number=10, repeats=3, allowParallel = TRUE)
+fitCtrl = trainControl(method="repeatedcv", number=5, repeats=3, allowParallel = TRUE)
 
 # information about decision tree parameters
-getModelInfo()$svmRadialSigma$parameters
+getModelInfo()$J48$parameters
 
 # training a decision tree with specific parameters using the metric "Accuracy"
 # modelDT = train(formula_with_most_important_attributes, data=training_data, method="J48",
 #                 tuneGrid=data.frame(C=c(0.1, 0.2, 0.3),M=c(2,2,2)),na.action = na.pass)
-modelDT = train(CarInsurance ~ .^2, data=training_data, method="svmRadialSigma",
+modelDT = train(CarInsurance ~ .^2, data=training_data, method="J48",
                 na.action = na.pass)
 
 modelDT
