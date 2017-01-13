@@ -64,7 +64,9 @@ get_weekday <- function(month, day){
 training_data <- read.csv("DMC1/training_yzCDTHz.csv")
 test_data <- read.csv("DMC1/pub_ZaGS0Z2.csv")
 
-
+# Remove ID field
+training_data = training_data[, -1]
+test_data = test_data[, -1]
 
 
 ######################################################
@@ -92,11 +94,6 @@ Defaultlevels = c("NonDef", "Def")
 training_data$Default = factor(training_data$Default, levels=0:1, labels=Defaultlevels)
 test_data$Default = factor(test_data$Default, levels=0:1, labels=Defaultlevels)
 
-
-# If a nominal or ordinal column in the test data set contains more levels thanwk  the corresponding column in the training data set, you can add levels to the column in the training data set manually using the following command:
-#training_data$salutation = factor(training_data$salutation, levels=c(levels(training_data$salutation), "Family"))
-
-
 HHlevels = c("NonIns", "Ins")
 training_data$HHInsurance = factor(training_data$HHInsurance, levels=0:1, labels=HHlevels)
 test_data$HHInsurance = factor(test_data$HHInsurance, levels=0:1, labels=HHlevels)
@@ -105,33 +102,39 @@ Carlevels = c("Nonloan", "Loan")
 training_data$CarLoan = factor(training_data$CarLoan, levels=0:1, labels=Carlevels)
 test_data$CarLoan = factor(test_data$CarLoan, levels=0:1, labels=Carlevels)
 
+# Ordinnal attributes
 
-# Manual discretization of "delivery time"
-training_data$delivery_time_discret = factor(rep("NA", nrow(training_data)), levels=c("NA", "<= 5d", "> 5d"))
-test_data$delivery_time_discret = factor(rep("NA", nrow(test_data)), levels=c("NA", "<= 5d", "> 5d"))
+NoContracts = 0:43
+training_data$NoOfContacts = ordered(training_data$NoOfContacts, levels=NoContracts)
+test_data$NoOfContacts = ordered(test_data$NoOfContacts, levels=NoContracts)
 
-training_data$delivery_time_discret[training_data$delivery_time <= 5] = "<= 5d"
-test_data$delivery_time_discret[test_data$delivery_time <= 5] = "<= 5d"
+PassedDays = -1:854
+training_data$DaysPassed = ordered(training_data$DaysPassed, levels=PassedDays)
+test_data$DaysPassed = ordered(test_data$DaysPassed, levels=PassedDays)
 
-training_data$delivery_time_discret[training_data$delivery_time > 5] = "> 5d"
-test_data$delivery_time_discret[test_data$delivery_time > 5] = "> 5d"
+AgeLevels = 18:95
+training_data$Age = ordered(training_data$Age, levels=AgeLevels)
+test_data$Age = ordered(test_data$Age, levels=AgeLevels)
 
+PrevLevels = 0:58
+training_data$PrevAttempts = ordered(training_data$PrevAttempts, levels=PrevLevels)
+test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
 
 
 # Binning/Discretization
 # install.packages("arules")
 library(arules)
-# equal frequency binning
-equal_frequency_cuts_delivery_time = discretize(training_data$delivery_time, categories=5, method="frequency", onlycuts=TRUE)
-training_data$delivery_time_discret_ef = cut(training_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
-test_data$delivery_time_discret_ef = cut(test_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
-table(training_data$delivery_time_discret_ef, useNA="ifany")
-str(training_data)
-# equal width binning: with method "interval"
-
-
+# # equal frequency binning
+# equal_frequency_cuts_delivery_time = discretize(training_data$delivery_time, categories=5, method="frequency", onlycuts=TRUE)
+# training_data$delivery_time_discret_ef = cut(training_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
+# test_data$delivery_time_discret_ef = cut(test_data$delivery_time, breaks=equal_frequency_cuts_delivery_time, ordered_result=TRUE, right=FALSE)
+# table(training_data$delivery_time_discret_ef, useNA="ifany")
+# str(training_data)
+# # equal width binning: with method "interval"
+# 
+# 
 # Multicollinearity
-numeric_columns = c("price","tax")
+numeric_columns = c("Age", "Balance", "NoOfContacts", "DaysPassed")
 # these columns also contain N/A values --> the option "pairwise.complete.obs" should be used
 numeric_columns_correlation = cor(training_data[, numeric_columns], use="pairwise.complete.obs")
 numeric_columns_correlation
@@ -156,23 +159,23 @@ library(FSelector)
 # training_data$delivery_date=NULL
 
 # Calculate weights for the attributes using Info Gain and Gain Ratio
-weights_info_gain = information.gain(return_shipment ~ ., data=training_data)
+weights_info_gain = information.gain(CarInsurance ~ ., data=training_data)
 weights_info_gain
-weights_gain_ratio = gain.ratio(return_shipment ~ ., data=training_data)
+weights_gain_ratio = gain.ratio(CarInsurance ~ ., data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 7)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 12)
 most_important_attributes
-formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "return_shipment")
+formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
 #Create formula manually
 # formula_with_most_important_attributes= return_shipment~delivery_time_discret_ef+state+size+salutation+order_date_weekday
 
 ######################################################
 # 4. Training & Evaluation
-# 3 x 5-fold cross validation
-fitCtrl = trainControl(method="repeatedcv", number=5, repeats=3)
+# 10 x 10-fold cross validation
+fitCtrl = trainControl(method="repeatedcv", number=10, repeats=10)
 
 # information about decision tree parameters
 getModelInfo()$J48$parameters
