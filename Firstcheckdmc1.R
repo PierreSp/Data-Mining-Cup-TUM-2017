@@ -234,9 +234,46 @@ formula_with_most_important_attributes
 # formula_with_most_important_attributes= return_shipment~delivery_time_discret_ef+state+size+salutation+order_date_weekday
 
 ######################################################
+
+
+
+
+
+
+cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3,number = 5, 
+                        #summaryFunction = twoClassSummary,
+                        classProbs = TRUE,
+                        allowParallel=T)
+
+xgb.grid <- expand.grid(nrounds = 1000,
+                        eta = c(0.01,0.05,0.1),
+                        max_depth = c(2,4,6,8,10,14)
+)
+xgb_tune <-train(formula_with_most_important_attributes,
+                 data=training_data,
+                 method="xgbTree",
+                 trControl=cv.ctrl,
+                 tuneGrid=xgb.grid,
+                 verbose=T,
+                 metric="Kappa",
+                 nthread =8,
+                 na.action = na.pass
+)
+
+
+
+
+
+
+
+
+
+
+
+
 # 4. Training & Evaluation
 # 10 x 10-fold cross validation
-fitCtrl = trainControl(method="repeatedcv", number=10, repeats=5)
+fitCtrl = trainControl(method="repeatedcv", number=5, repeats=3)
 
 # training a list of models using the metric "Accuracy"
 method_list <- c("J48", "OneR", "LogitBoost")
