@@ -61,7 +61,7 @@ get_weekday <- function(month, day){
   month = gsub("nov","11", month)
   month = gsub("dec","12", month)
   convdate = ISOdate("2015", month, day)
-  weekday = wday(convdate, label = TRUE)
+  weekday = wday(convdate)
   return(weekday)
 }
 
@@ -101,7 +101,7 @@ test_data <- read.csv("DMC1/pub_ZaGS0Z2.csv")
 
 # Remove ID field
 training_data = training_data[, -1]
-test_data = test_data[, -1]
+# test_data = test_data[, -1]
 
 
 ######################################################
@@ -119,14 +119,15 @@ weekdaytrain = get_weekday(training_data$LastContactMonth, training_data$LastCon
 weekdaytest = get_weekday(test_data$LastContactMonth, test_data$LastContactDay)
 
 # Add timediff and weekday
-training_data = data.frame(training_data, "timediff"=timedifftrain, "weekday"=weekdaytrain)
-test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=weekdaytest)
+training_data = data.frame(training_data, "timediff"=timedifftrain, "weekday"=as.factor(weekdaytrain))
+test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=as.factor(weekdaytest))
 
 
 # Nominal attributes
 
 # to_nominalize = c("Default", "HHInsurance", "CarLoan")
 # nomdata = make_nominal(training_data, test_data, to_nominalize)
+
 
 CarInsLevel = c("NoIns", "Ins")
 training_data$CarInsurance = factor(training_data$CarInsurance, levels=0:1, labels=CarInsLevel)
@@ -176,18 +177,18 @@ training_data$age_discret_ef = cut(as.numeric(training_data$Age), breaks=equal_f
 test_data$age_discret_ef = cut(as.numeric(test_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
 
 # Timediff binning
-equal_frequency_cuts_td= discretize(as.numeric(training_data$timediff), categories=10, method="frequency", onlycuts=TRUE)
-training_data$td_discret_ef = cut(as.numeric(training_data$timediff), breaks=equal_frequency_cuts_td, ordered_result=TRUE, right=FALSE)
-test_data$td_discret_ef = cut(as.numeric(test_data$timediff), breaks=equal_frequency_cuts_td, ordered_result=TRUE, right=FALSE)
-table(training_data$td_discret_ef, useNA="ifany")
-str(training_data)
+# equal_frequency_cuts_td= discretize(as.numeric(training_data$timediff), categories=10, method="frequency", onlycuts=TRUE)
+# training_data$td_discret_ef = cut(as.numeric(training_data$timediff), breaks=equal_frequency_cuts_td, ordered_result=TRUE, right=FALSE)
+# test_data$td_discret_ef = cut(as.numeric(test_data$timediff), breaks=equal_frequency_cuts_td, ordered_result=TRUE, right=FALSE)
+# table(training_data$td_discret_ef, useNA="ifany")
+# str(training_data)
 
 # Passed Day binning
-equal_frequency_cuts_pd= discretize(as.numeric(training_data$DaysPassed), categories=10, method="frequency", onlycuts=TRUE)
-training_data$td_discret_pd = cut(as.numeric(training_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
-test_data$td_discret_pd = cut(as.numeric(test_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
-table(training_data$td_discret_pd, useNA="ifany")
-str(training_data)
+# equal_frequency_cuts_pd= discretize(as.numeric(training_data$DaysPassed), categories=10, method="frequency", onlycuts=TRUE)
+# training_data$td_discret_pd = cut(as.numeric(training_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
+# test_data$td_discret_pd = cut(as.numeric(test_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
+# table(training_data$td_discret_pd, useNA="ifany")
+# str(training_data)
 # # equal width binning: with method "interval"
 # 
 # 
@@ -218,11 +219,15 @@ str(training_data)
 
 # DROP COLUMNS
 training_data$CallStart=NULL
-test_data$CallStart=NULL
+#test_data$CallStart=NULL
 training_data$CallEnd=NULL
-test_data$CallEnd=NULL
-training_data$timediff=NULL
-test_data$timediff=NULL
+#test_data$CallEnd=NULL
+# training_data$timediff=NULL
+# test_data$timediff=NULL
+
+# Make DaysPassed
+training_data$DaysPassed[training_data$DaysPassed==-1] = NA
+test_data$DaysPassed[test_data$DaysPassed==-1] = NA
 
 # Calculate weights for the attributes using Info Gain and Gain Ratio
 weights_info_gain = information.gain(CarInsurance ~ .^2 , data=training_data)
@@ -231,7 +236,7 @@ weights_gain_ratio = gain.ratio(CarInsurance ~ .^2 , data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 13)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 11)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
@@ -239,24 +244,22 @@ formula_with_most_important_attributes
 # formula_with_most_important_attributes= return_shipment~delivery_time_discret_ef+state+size+salutation+order_date_weekday
 
 ######################################################
+# 4. Training & Evaluation
+# 10 x 10-fold cross validation
 
 
-
-
-
-
-cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3,number = 5, 
+cv.ctrl <- trainControl(method = "repeatedcv", repeats = 1, number = 3, 
                         #summaryFunction = twoClassSummary,
                         classProbs = TRUE,
                         allowParallel=T)
 
-xgb.grid <- expand.grid(nrounds = 1000,
-                        eta = c(0.01,0.05,0.1),
-                        max_depth = c(2,4,6,8,10,14),
-                        subsample = 1,
-                        min_child_weight =1,
-                        gamma = c(0.01,1,0.1),
-                        colsample_bytree = 1
+xgb.grid <- expand.grid(nrounds = 10*(10:100),
+                        eta = seq(0.1, 0.9, by = 0.05),
+                        max_depth = c(4,6,8),
+                        subsample = 0.6,
+                        min_child_weight=1,
+                        gamma =  seq(0, 0.9, by = 0.1),
+                        colsample_bytree = 0.8
                         
 )
 xgb_tune <-train(formula_with_most_important_attributes,
@@ -265,82 +268,22 @@ xgb_tune <-train(formula_with_most_important_attributes,
                  trControl=cv.ctrl,
                  tuneGrid=xgb.grid,
                  verbose=T,
-                 metric="Kappa",
+                 metric="Accuracy",
                  nthread = 26,
                  na.action = na.pass
 )
 
 
-
-
-
-
-
-
-
-
-
-
-# 4. Training & Evaluation
-# 10 x 10-fold cross validation
-fitCtrl = trainControl(method="repeatedcv", number=5, repeats=3)
-
-# training a list of models using the metric "Accuracy"
-method_list <- c("J48", "OneR", "LogitBoost")
-library(parallel)
-par_train_and_compare <- function(data, formula, list_of_methods, trControl){
-  no_cores <- detectCores() - 1
-  cl <- makeCluster(no_cores)
-  clusterEvalQ(cl, {
-    library(caret)
-  })
-  clusterExport(cl, c(
-    "data",
-    "formula",
-    "list_of_methods",
-    "trControl"),
-    envir=environment())
-  models <- parLapply(cl = cl,
-                      list_of_methods,
-                      function(x){
-                        train(formula,
-                              data=data,
-                              method=x,
-                              trControl=trControl,
-                              metric="Accuracy",
-                              na.action = na.pass)
-                      })
-  stopCluster(cl)
-  return(models)
-}
-models <- par_train_and_compare(
-  training_data,
-  formula_with_most_important_attributes,
-  method_list,
-  fitCtrl)
-
-
-# Compare results of different models by Accuracy and return best
-get_best_model <- function(models, methods){
-  res <- resamples(models)
-  vals <- res$values %>% select(ends_with("Accuracy"))
-  
-  # Winning model:
-  winner_nr <- vals %>% colMeans %>% which.max
-  return(models[winner_nr][[1]])
-}
-
-get_best_model(model)
 ######################################################
 # 5. Predict Classes in Test Data
-prediction_classes = predict.train(object=modelDT, newdata=test_data, na.action=na.pass)
-predictions = data.frame(id=test_data$ID, prediction=prediction_classes)
+prediction_classes = predict.train(object=xgb_tune, newdata=test_data, na.action=na.pass)
+predictions = data.frame(id=test_data$CarInsurance, prediction=prediction_classes)
 predictions
 
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="predictions_group_name_number.csv", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc1_dataRtists", row.names=FALSE)
 
 
 ######################################################
