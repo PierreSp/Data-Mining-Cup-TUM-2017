@@ -11,6 +11,11 @@
 # install.packages("data.table")
 # install.packages("dplyr")
 # install.packages("magrittr")
+
+# install.packages("drat", repos="https://cran.rstudio.com")
+# drat:::addRepo("dmlc")
+# install.packages("xgboost", repos="http://dmlc.ml/drat/", type = "source")
+
 library(FSelector)
 library(arules)
 library(caret)
@@ -123,7 +128,7 @@ test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=weekdaytest
 # to_nominalize = c("Default", "HHInsurance", "CarLoan")
 # nomdata = make_nominal(training_data, test_data, to_nominalize)
 
-CarInsLevel = c("0", "1")
+CarInsLevel = c("NoIns", "Ins")
 training_data$CarInsurance = factor(training_data$CarInsurance, levels=0:1, labels=CarInsLevel)
 test_data$CarInsurance = factor(test_data$CarInsurance, levels=0:1, labels=CarInsLevel)
 
@@ -142,8 +147,8 @@ test_data$CarLoan = factor(test_data$CarLoan, levels=0:1, labels=Carlevels)
 
 # Ordinal attributes
 
-to_ordinaize = c("NoOfContacts", "Age", "PrevAttempts")
-orddata = make_ordinal(training_data, test_data, to_ordinaize)
+# to_ordinaize = c("NoOfContacts", "Age", "PrevAttempts")
+# orddata = make_ordinal(training_data, test_data, to_ordinaize)
 
 NoContracts = sort(unique(c(as.numeric(training_data$NoOfContacts), as.numeric(test_data$NoOfContacts))))
 training_data$NoOfContacts = ordered(training_data$NoOfContacts, levels=NoContracts)
@@ -247,7 +252,12 @@ cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3,number = 5,
 
 xgb.grid <- expand.grid(nrounds = 1000,
                         eta = c(0.01,0.05,0.1),
-                        max_depth = c(2,4,6,8,10,14)
+                        max_depth = c(2,4,6,8,10,14),
+                        subsample = 1,
+                        min_child_weight =1,
+                        gamma = c(0.01,0.05,0.1),
+                        colsample_bytree = 1
+                        
 )
 xgb_tune <-train(formula_with_most_important_attributes,
                  data=training_data,
@@ -256,7 +266,7 @@ xgb_tune <-train(formula_with_most_important_attributes,
                  tuneGrid=xgb.grid,
                  verbose=T,
                  metric="Kappa",
-                 nthread =8,
+                 nthread = 26,
                  na.action = na.pass
 )
 
