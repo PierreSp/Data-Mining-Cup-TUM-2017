@@ -255,7 +255,7 @@ xgb.grid <- expand.grid(nrounds = 1000,
                         max_depth = c(2,4,6,8,10,14),
                         subsample = 1,
                         min_child_weight =1,
-                        gamma = c(0.01,0.05,0.1),
+                        gamma = c(0.01,1,0.1),
                         colsample_bytree = 1
                         
 )
