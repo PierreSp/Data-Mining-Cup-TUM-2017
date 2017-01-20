@@ -236,7 +236,7 @@ weights_gain_ratio = gain.ratio(CarInsurance ~ .^2 , data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 11)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 14)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
@@ -253,12 +253,12 @@ cv.ctrl <- trainControl(method = "repeatedcv", repeats = 1, number = 3,
                         classProbs = TRUE,
                         allowParallel=T)
 
-xgb.grid <- expand.grid(nrounds = 10*(10:100),
-                        eta = seq(0.1, 0.9, by = 0.05),
-                        max_depth = c(4,6,8),
+xgb.grid <- expand.grid(nrounds = 100*(1:10),
+                        eta = 0.3,
+                        max_depth = 6,
                         subsample = 0.6,
                         min_child_weight=1,
-                        gamma =  seq(0, 0.9, by = 0.1),
+                        gamma =  seq(0, 0.4, by = 0.2),
                         colsample_bytree = 0.8
                         
 )

@@ -96,11 +96,13 @@ make_nominal <- function(train, test, columns){
 ######################################################
 # 2. Load & Explore the Training Data Set
 # Import data
-training_data <- read.csv("DMC1/training_yzCDTHz.csv")
-test_data <- read.csv("DMC1/pub_ZaGS0Z2.csv")
+training_data <- read.csv("DMC2/2_ba16_dmc2_vehicle_training_data_Ar2kCbl.csv")
+test_data <- read.csv("DMC2/pub_nkAt59S.csv")
 
 # Remove ID field
 training_data = training_data[, -1]
+training_data = training_data[, -1]
+
 # test_data = test_data[, -1]
 
 
@@ -109,72 +111,31 @@ training_data = training_data[, -1]
 # (using both training and test data)
 # do NOT DELETE any instances in the test data
 
-# Create new field duration (is duration of the phonecall) Bucketize?
-timedifftrain = get_time_diff(training_data$CallStart, training_data$CallEnd)
-timedifftest = get_time_diff(test_data$CallStart, test_data$CallEnd)
-
-# Find weekdays
-
-weekdaytrain = get_weekday(training_data$LastContactMonth, training_data$LastContactDay)
-weekdaytest = get_weekday(test_data$LastContactMonth, test_data$LastContactDay)
-
-# Add timediff and weekday
-training_data = data.frame(training_data, "timediff"=timedifftrain, "weekday"=as.factor(weekdaytrain))
-test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=as.factor(weekdaytest))
-
-
 # Nominal attributes
 
 # to_nominalize = c("Default", "HHInsurance", "CarLoan")
 # nomdata = make_nominal(training_data, test_data, to_nominalize)
 
 
-CarInsLevel = c("NoIns", "Ins")
-training_data$CarInsurance = factor(training_data$CarInsurance, levels=0:1, labels=CarInsLevel)
-test_data$CarInsurance = factor(test_data$CarInsurance, levels=0:1, labels=CarInsLevel)
+training_data$engine_type = factor(training_data$engine_type)
+test_data$engine_type = factor(test_data$engine_type)
 
-
-Defaultlevels = c("NonDef", "Def")
-training_data$Default = factor(training_data$Default, levels=0:1, labels=Defaultlevels)
-test_data$Default = factor(test_data$Default, levels=0:1, labels=Defaultlevels)
-
-HHlevels = c("NonIns", "Ins")
-training_data$HHInsurance = factor(training_data$HHInsurance, levels=0:1, labels=HHlevels)
-test_data$HHInsurance = factor(test_data$HHInsurance, levels=0:1, labels=HHlevels)
-
-Carlevels = c("Nonloan", "Loan")
-training_data$CarLoan = factor(training_data$CarLoan, levels=0:1, labels=Carlevels)
-test_data$CarLoan = factor(test_data$CarLoan, levels=0:1, labels=Carlevels)
+training_data$vehicle_type = factor(training_data$vehicle_type)
+test_data$vehicle_type = factor(test_data$vehicle_type)
 
 # Ordinal attributes
 
 # to_ordinaize = c("NoOfContacts", "Age", "PrevAttempts")
 # orddata = make_ordinal(training_data, test_data, to_ordinaize)
 
-NoContracts = sort(unique(c(as.numeric(training_data$NoOfContacts), as.numeric(test_data$NoOfContacts))))
-training_data$NoOfContacts = ordered(training_data$NoOfContacts, levels=NoContracts)
-test_data$NoOfContacts = ordered(test_data$NoOfContacts, levels=NoContracts)
-
 # PassedDays = sort(unique(c(as.numeric(training_data$DaysPassed), as.numeric(test_data$DaysPassed))))
 # training_data$DaysPassed = ordered(training_data$DaysPassed, levels=PassedDays)
 # test_data$DaysPassed = ordered(test_data$DaysPassed, levels=PassedDays)
-
-AgeLevels = sort(unique(c(as.numeric(training_data$Age), as.numeric(test_data$Age))))
-training_data$Age = ordered(training_data$Age, levels=AgeLevels)
-test_data$Age = ordered(test_data$Age, levels=AgeLevels)
-
-PrevLevels = sort(unique(c(as.numeric(training_data$PrevAttempts), as.numeric(test_data$PrevAttempts))))
-training_data$PrevAttempts = ordered(training_data$PrevAttempts, levels=PrevLevels)
-test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
 
 
 # Binning/Discretization
 
 # equal frequency binning
-# Age Binning
-equal_frequency_cuts_age= discretize(as.numeric(training_data$Age), categories=5, method="frequency", onlycuts=TRUE)
-training_data$age_discret_ef = cut(as.numeric(training_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
-test_data$age_discret_ef = cut(as.numeric(test_data$Age), breaks=equal_frequency_cuts_age, ordered_result=TRUE, right=FALSE)
 
 # Timediff binning
 # equal_frequency_cuts_td= discretize(as.numeric(training_data$timediff), categories=10, method="frequency", onlycuts=TRUE)
@@ -183,14 +144,6 @@ test_data$age_discret_ef = cut(as.numeric(test_data$Age), breaks=equal_frequency
 # table(training_data$td_discret_ef, useNA="ifany")
 # str(training_data)
 
-# Passed Day binning
-# equal_frequency_cuts_pd= discretize(as.numeric(training_data$DaysPassed), categories=10, method="frequency", onlycuts=TRUE)
-# training_data$td_discret_pd = cut(as.numeric(training_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
-# test_data$td_discret_pd = cut(as.numeric(test_data$DaysPassed), breaks=equal_frequency_cuts_pd, ordered_result=TRUE, right=FALSE)
-# table(training_data$td_discret_pd, useNA="ifany")
-# str(training_data)
-# # equal width binning: with method "interval"
-# 
 # 
 # Multicollinearity
 # numeric_columns = c("Age", "Balance")
@@ -218,25 +171,20 @@ test_data$age_discret_ef = cut(as.numeric(test_data$Age), breaks=equal_frequency
 
 
 # DROP COLUMNS
-training_data$CallStart=NULL
-#test_data$CallStart=NULL
-training_data$CallEnd=NULL
-#test_data$CallEnd=NULL
-# training_data$timediff=NULL
-# test_data$timediff=NULL
 
-# Make DaysPassed
-training_data$DaysPassed[training_data$DaysPassed==-1] = NA
-test_data$DaysPassed[test_data$DaysPassed==-1] = NA
+training_data = training_data[-c(16:63)]
+test_data$timediff=NULL
+
+
 
 # Calculate weights for the attributes using Info Gain and Gain Ratio
-weights_info_gain = information.gain(CarInsurance ~ .^2 , data=training_data)
+weights_info_gain = information.gain(defect ~ .^2 , data=training_data)
 weights_info_gain
-weights_gain_ratio = gain.ratio(CarInsurance ~ .^2 , data=training_data)
+weights_gain_ratio = gain.ratio(defect ~ .^2 , data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 11)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 20)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
