@@ -121,6 +121,9 @@ weekdaytest = get_weekday(test_data$LastContactMonth, test_data$LastContactDay)
 # Add timediff and weekday
 training_data = data.frame(training_data, "timediff"=timedifftrain, "weekday"=as.factor(weekdaytrain))
 test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=as.factor(weekdaytest))
+# Combining columns
+training_data = data.frame(training_data, "contactrattio"=training_data$PrevAttempts / training_data$NoOfContacts)
+test_data = data.frame(test_data, "contactrattio"=training_data$PrevAttempts / training_data$NoOfContacts)
 
 
 # Nominal attributes
@@ -131,7 +134,7 @@ test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=as.factor(w
 # 
 CarInsLevel =c("null", "eins")
 training_data$CarInsurance = factor(training_data$CarInsurance, labels=CarInsLevel)
-test_data$CarInsurance = factor(test_data$CarInsurance, labels=CarInsLevel)
+# test_data$CarInsurance = factor(test_data$CarInsurance, labels=CarInsLevel)
 
 # training_data$CarInsurance = factor(training_data$CarInsurance)
 
@@ -159,14 +162,14 @@ test_data$NoOfContacts = ordered(test_data$NoOfContacts, levels=NoContracts)
 # PassedDays = sort(unique(c(as.numeric(training_data$DaysPassed), as.numeric(test_data$DaysPassed))))
 # training_data$DaysPassed = ordered(training_data$DaysPassed, levels=PassedDays)
 # test_data$DaysPassed = ordered(test_data$DaysPassed, levels=PassedDays)
+# 
+# AgeLevels = sort(unique(c(as.numeric(training_data$Age), as.numeric(test_data$Age))))
+# training_data$Age = ordered(training_data$Age, levels=AgeLevels)
+# test_data$Age = ordered(test_data$Age, levels=AgeLevels)
 
-AgeLevels = sort(unique(c(as.numeric(training_data$Age), as.numeric(test_data$Age))))
-training_data$Age = ordered(training_data$Age, levels=AgeLevels)
-test_data$Age = ordered(test_data$Age, levels=AgeLevels)
-
-PrevLevels = sort(unique(c(as.numeric(training_data$PrevAttempts), as.numeric(test_data$PrevAttempts))))
-training_data$PrevAttempts = ordered(training_data$PrevAttempts, levels=PrevLevels)
-test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
+# PrevLevels = sort(unique(c(as.numeric(training_data$PrevAttempts), as.numeric(test_data$PrevAttempts))))
+# training_data$PrevAttempts = ordered(training_data$PrevAttempts, levels=PrevLevels)
+# test_data$PrevAttempts = ordered(test_data$PrevAttempts, levels=PrevLevels)
 
 
 # Binning/Discretization
@@ -231,13 +234,19 @@ training_data$DaysPassed[training_data$DaysPassed==-1] = NA
 test_data$DaysPassed[test_data$DaysPassed==-1] = NA
 
 # Calculate weights for the attributes using Info Gain and Gain Ratio
-weights_info_gain = information.gain(CarInsurance ~ .^2 , data=training_data)
+weights_info_gain = information.gain(CarInsurance ~ poly(timediff + Outcome + Age + DaysPassed + contactrattio + 
+                                       Communication + PrevAttempts + HHInsurance + LastContactMonth + 
+                                       Balance + CarLoan + Default + weekday + Job + NoOfContacts + 
+                                       LastContactDay + Marital + Education,2) , data=training_data)
 weights_info_gain
-weights_gain_ratio = gain.ratio(CarInsurance ~ .^2 , data=training_data)
+weights_gain_ratio = gain.ratio(CarInsurance ~ CarInsurance ~ (timediff + Outcome + Age + DaysPassed + contactrattio + 
+                                                                Communication + PrevAttempts + HHInsurance + LastContactMonth + 
+                                                                Balance + CarLoan + Default + weekday + Job + NoOfContacts + 
+                                                                LastContactDay + Marital + Education)^2 , data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 16)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 18)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
@@ -273,26 +282,28 @@ cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5,
 #                         allowParallel=T)
 
 
-xgb.grid <- expand.grid(nrounds = 100*(5:15),
-                        eta = seq(0, 0.6, by = 0.1),
-                        max_depth = c(3,5,9),
-                        subsample = c(0,0.5,1),
-                        min_child_weight=c(0,0.5,1),
-                        gamma =  seq(0, 0.6, by = 0.1),
-                        colsample_bytree = c(0.4,0.6,0.8,1)
-                        
+xgb.grid <- expand.grid(nrounds = c(500, 1000),
+                        eta = 0.01,
+                        max_depth = c(4,8),
+                        subsample = c(0.5, 0.75,1),
+                        min_child_weight= 0.2,
+                        gamma =  0,
+                        colsample_bytree = c(0.4, 0.6, 0.8)
 )
-xgb_tune <-train(formula_with_most_important_attributes,
+
+xgb_tune <-train(CarInsurance ~.^2,
                  data=training_data,
                  method="xgbTree",
                  trControl=cv.ctrl,
                  tuneGrid=xgb.grid,
-                 verbose=T,
+                 verbose=1,
+                 printEveryN = 100,
                  metric="Accuracy",
                  nthread = 26,
                  na.action = na.pass
 )
-
+print(xgb_tune$finalModel)
+print(max(xgb_tune$results[8]))
 
 ######################################################
 # 5. Predict Classes in Test Data
@@ -303,6 +314,6 @@ predictions$prediction = as.character(as.numeric(predictions$prediction)-1)
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="prediction_dmc1full_dataRtists", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc1_dataRtists_4.csv", row.names=FALSE)
 
 print(Sys.time() - start_time)
