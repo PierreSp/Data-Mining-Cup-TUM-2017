@@ -86,8 +86,20 @@ most_important_attributes <- cutoff.k(weights_gain_ratio, 70)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "defect")
 formula_with_most_important_attributes
+
 #Create formula manually
-# formula_with_most_important_attributes= return_shipment~delivery_time_discret_ef+state+size+salutation+order_date_weekday
+eng_feature_cols <- colnames(training_data)[training_data %>% colnames() %>% grepl(pattern='engine_feature')]
+other_cols <- colnames(training_data)[!(training_data %>% colnames() %>% grepl(pattern='engine_feature'))]
+my_big_formula = paste0(
+  paste(
+    other_cols, 
+    eng_feature_cols, 
+    sep=" * ", 
+    collapse=" + "),
+  paste(
+    colnames(training_data), collapse = " + "))
+formula_with_most_important_attributes <- as.simple.formula(my_big_formula, "defect")
+
 
 ######################################################
 # 4. Training & Evaluation
