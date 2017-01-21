@@ -15,7 +15,6 @@
 # install.packages("drat", repos="https://cran.rstudio.com")
 # drat:::addRepo("dmlc")
 # install.packages("xgboost", repos="http://dmlc.ml/drat/", type = "source")
-
 library(FSelector)
 library(arules)
 library(caret)
@@ -27,6 +26,7 @@ library(magrittr)
 # registerDoMC(cores = 24)
 #clear environment variables
 rm(list=ls())
+start_time = Sys.time()
 
 # For reasons of traceability you must use a fixed seed
 set.seed(42) # do NOT CHANGE this seed
@@ -128,11 +128,12 @@ test_data = data.frame(test_data, "timediff"=timedifftest, "weekday"=as.factor(w
 # to_nominalize = c("Default", "HHInsurance", "CarLoan")
 # nomdata = make_nominal(training_data, test_data, to_nominalize)
 
+# 
+CarInsLevel =c("null", "eins")
+training_data$CarInsurance = factor(training_data$CarInsurance, labels=CarInsLevel)
+test_data$CarInsurance = factor(test_data$CarInsurance, labels=CarInsLevel)
 
-CarInsLevel = c("NoIns", "Ins")
-training_data$CarInsurance = factor(training_data$CarInsurance, levels=0:1, labels=CarInsLevel)
-test_data$CarInsurance = factor(test_data$CarInsurance, levels=0:1, labels=CarInsLevel)
-
+# training_data$CarInsurance = factor(training_data$CarInsurance)
 
 Defaultlevels = c("NonDef", "Def")
 training_data$Default = factor(training_data$Default, levels=0:1, labels=Defaultlevels)
@@ -236,7 +237,7 @@ weights_gain_ratio = gain.ratio(CarInsurance ~ .^2 , data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 14)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 16)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "CarInsurance")
 formula_with_most_important_attributes
@@ -248,18 +249,37 @@ formula_with_most_important_attributes
 # 10 x 10-fold cross validation
 
 
-cv.ctrl <- trainControl(method = "repeatedcv", repeats = 1, number = 3, 
+cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5, 
                         #summaryFunction = twoClassSummary,
                         classProbs = TRUE,
                         allowParallel=T)
 
-xgb.grid <- expand.grid(nrounds = 100*(1:10),
-                        eta = 0.3,
-                        max_depth = 6,
-                        subsample = 0.6,
-                        min_child_weight=1,
-                        gamma =  seq(0, 0.4, by = 0.2),
-                        colsample_bytree = 0.8
+
+# xgb.grid <- expand.grid(nrounds = 100,
+#                         eta = 0.3,
+#                         max_depth = 2,
+#                         subsample = 1,
+#                         min_child_weight=1,
+#                         gamma =  0,
+#                         colsample_bytree = 0.6
+#                         
+# )
+
+
+# cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5, 
+#                         search = "random",
+#                         #summaryFunction = twoClassSummary,
+#                         classProbs = TRUE,
+#                         allowParallel=T)
+
+
+xgb.grid <- expand.grid(nrounds = 100*(5:15),
+                        eta = seq(0, 0.6, by = 0.1),
+                        max_depth = c(3,5,9),
+                        subsample = c(0,0.5,1),
+                        min_child_weight=c(0,0.5,1),
+                        gamma =  seq(0, 0.6, by = 0.1),
+                        colsample_bytree = c(0.4,0.6,0.8,1)
                         
 )
 xgb_tune <-train(formula_with_most_important_attributes,
@@ -277,24 +297,12 @@ xgb_tune <-train(formula_with_most_important_attributes,
 ######################################################
 # 5. Predict Classes in Test Data
 prediction_classes = predict.train(object=xgb_tune, newdata=test_data, na.action=na.pass)
-predictions = data.frame(id=test_data$CarInsurance, prediction=prediction_classes)
-predictions
+predictions = data.frame(id=test_data$Id, prediction=prediction_classes)
+predictions$prediction = as.character(as.numeric(predictions$prediction)-1)
 
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="prediction_dmc1_dataRtists", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc1full_dataRtists", row.names=FALSE)
 
-
-######################################################
-# 7. Upload the Predictions and the Corresponding R Script on DMC Manager
-# https://dmc.dss.in.tum.de/dmc/
-# Login with TUM login data ("TUM-Kennung")
-#
-# Maxium number of submissions: 10
-#
-# Possible errors that could occur:
-# - Wrong column names
-# - Unknown IDs (if not in Test Data)
-# - Missing IDs (if in Test Data but not in Predictions)
-# - Wrong file format
+print(Sys.time() - start_time)
