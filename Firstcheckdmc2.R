@@ -89,16 +89,18 @@ formula_with_most_important_attributes
 
 #Create formula manually
 eng_feature_cols <- colnames(training_data)[training_data %>% colnames() %>% grepl(pattern='engine_feature')]
-other_cols <- colnames(training_data[,-ncol(training_data)])[!(training_data[,-ncol(training_data)] %>% colnames() %>% grepl(pattern='engine_feature'))]
-my_big_formula = paste(
+other_cols <- colnames(training_data)[!(training_data %>% colnames() %>% grepl(pattern='engine_feature'))]
+my_formula = paste(
   paste(
-    other_cols, 
-    eng_feature_cols, 
-    sep=" * ", 
-    collapse=" + "),
+    unlist(
+      lapply(
+        X = eng_feature_cols,
+        FUN = function(x) paste(other_cols, x, sep = "*", collapse = " + "))),
+    collapse = " + "),
   paste(
-    colnames(training_data), collapse = " + "), sep=" + ")
-formula_with_most_important_attributes <- as.simple.formula(my_big_formula, "defect")
+    colnames(training_data), collapse = " + "),
+  sep=" + ")
+formula_with_most_important_attributes <- as.simple.formula(my_formula, "defect")
 
 
 ######################################################
