@@ -11,7 +11,6 @@
 # install.packages("data.table")
 # install.packages("dplyr")
 # install.packages("magrittr")
-
 # install.packages("drat", repos="https://cran.rstudio.com")
 # drat:::addRepo("dmlc")
 # install.packages("xgboost", repos="http://dmlc.ml/drat/", type = "source")
@@ -23,8 +22,6 @@ library(lubridate)
 library(data.table)
 library(dplyr)
 library(magrittr)
-# library(doMC)
-# registerDoMC(cores = 24)
 #clear environment variables
 rm(list=ls())
 
@@ -67,22 +64,9 @@ test_data$engine_type = factor(test_data$engine_type)
 
 training_data$vehicle_type = factor(training_data$vehicle_type)
 test_data$vehicle_type = factor(test_data$vehicle_type)
-
-# Ordinal attributes
-
-# PassedDays = sort(unique(c(as.numeric(training_data$DaysPassed), as.numeric(test_data$DaysPassed))))
-# training_data$DaysPassed = ordered(training_data$DaysPassed, levels=PassedDays)
-# test_data$DaysPassed = ordered(test_data$DaysPassed, levels=PassedDays)
-
-
 # Binning/Discretization
 
 # equal frequency binning
-
-
-# another package for binning/discretization would be the "discretization" package
-# some classifiers use built-in supervised binning, i.e. entropy-based binning
-
 
 
 # Feature Selection
@@ -98,7 +82,7 @@ weights_gain_ratio = gain.ratio(defect ~ .^2 , data=training_data)
 weights_gain_ratio
 
 # Select the most important attributes based on Gain Ratio
-most_important_attributes <- cutoff.k(weights_gain_ratio, 80)
+most_important_attributes <- cutoff.k(weights_gain_ratio, 70)
 most_important_attributes
 formula_with_most_important_attributes <- as.simple.formula(most_important_attributes, "defect")
 formula_with_most_important_attributes
@@ -148,7 +132,6 @@ predictions
 ######################################################
 # 6. Export the Predictions
 write.csv(predictions, file="prediction_dmc2_dataRtists.csv", row.names=FALSE)
-
 
 ######################################################
 # 7. Upload the Predictions and the Corresponding R Script on DMC Manager
