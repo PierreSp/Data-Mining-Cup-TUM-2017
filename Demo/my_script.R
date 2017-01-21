@@ -29,7 +29,7 @@ set.seed(42) # do NOT CHANGE this seed
 
 ############ ##########################################
 # 2. Load & Explore the Training Data Set
-training_data = read.csv("Demo/raw_data_large.csv", sep=";")
+training_data = read.csv("DMC2/2_ba16_dmc2_vehicle_training_data_Ar2kCbl.csv")
 
 # Show the structure
 str(training_data)
