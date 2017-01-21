@@ -161,7 +161,7 @@ formula_with_most_important_attributes <- as.simple.formula(my_formula, "defect"
 # 10 x 10-fold cross validation
 
 
-cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5, 
+cv.ctrl <- trainControl(method = "repeatedcv", repeats = 4, number = 5, 
                         #summaryFunction = twoClassSummary,
                         classProbs = TRUE,
                         allowParallel=T)
@@ -192,12 +192,12 @@ print(max(xgb_tune$results[8]))
 ######################################################
 # 5. Predict Classes in Test Data
 prediction_classes = predict.train(object=xgb_tune, newdata=test_data, na.action=na.pass)
-predictions = data.frame(id=test_data$CarInsurance, prediction=prediction_classes)
+predictions = data.frame(id=test_data$system_readout_id, prediction=prediction_classes)
 predictions
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="prediction_dmc2_dataRtists.csv", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc2_dataRtists_1.csv", row.names=FALSE)
 
 ######################################################
 # 7. Upload the Predictions and the Corresponding R Script on DMC Manager

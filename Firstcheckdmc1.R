@@ -282,13 +282,13 @@ cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5,
 #                         allowParallel=T)
 
 
-xgb.grid <- expand.grid(nrounds = c(500, 1000),
+xgb.grid <- expand.grid(nrounds =  1000,
                         eta = 0.01,
-                        max_depth = c(4,8),
-                        subsample = c(0.5, 0.75,1),
+                        max_depth = 4,
+                        subsample = 1,
                         min_child_weight= 0.2,
                         gamma =  0,
-                        colsample_bytree = c(0.4, 0.6, 0.8)
+                        colsample_bytree = 0.4
 )
 
 xgb_tune <-train(CarInsurance ~.^2,
@@ -314,6 +314,6 @@ predictions$prediction = as.character(as.numeric(predictions$prediction)-1)
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="prediction_dmc1_dataRtists_4.csv", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc1_dataRtists_5.csv", row.names=FALSE)
 
 print(Sys.time() - start_time)
