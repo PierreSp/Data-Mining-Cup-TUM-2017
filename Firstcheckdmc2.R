@@ -128,7 +128,6 @@ prediction_classes = predict.train(object=xgb_tune, newdata=test_data, na.action
 predictions = data.frame(id=test_data$CarInsurance, prediction=prediction_classes)
 predictions
 
-
 ######################################################
 # 6. Export the Predictions
 write.csv(predictions, file="prediction_dmc2_dataRtists.csv", row.names=FALSE)
