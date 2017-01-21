@@ -66,12 +66,63 @@ training_data$vehicle_type = factor(training_data$vehicle_type)
 test_data$vehicle_type = factor(test_data$vehicle_type)
 # Binning/Discretization
 
-# equal frequency binning
+# column creation
+training_data$engine_feature_14_mean <- (
+  training_data$engine_feature_14_1 * 1 +
+    training_data$engine_feature_14_2 * 2 +
+    training_data$engine_feature_14_3 * 3 +
+    training_data$engine_feature_14_4 * 4 +
+    training_data$engine_feature_14_5 * 5) / 100
 
-
-# Feature Selection
-
-# DROP COLUMNS
+training_data$engine_feature_11_mean <- (
+  training_data$engine_feature_11_1 * 1 +
+    training_data$engine_feature_11_2 * 2 +
+    training_data$engine_feature_11_3 * 3 +
+    training_data$engine_feature_11_4 * 4 +
+    training_data$engine_feature_11_5 * 5 +
+    training_data$engine_feature_11_6 * 6 +
+    training_data$engine_feature_11_7 * 7 +
+    training_data$engine_feature_11_8 * 8 +
+    training_data$engine_feature_11_9 * 9 +
+    training_data$engine_feature_11_10 * 10 +
+    training_data$engine_feature_11_11 * 11 +
+    training_data$engine_feature_11_12 * 12 +
+    training_data$engine_feature_11_13 * 13 +
+    training_data$engine_feature_11_14 * 14 +
+    training_data$engine_feature_11_15 * 15 +
+    training_data$engine_feature_11_16 * 16 +
+    training_data$engine_feature_11_17 * 17 +
+    training_data$engine_feature_11_18 * 18 +
+    training_data$engine_feature_11_19 * 19 +
+    training_data$engine_feature_11_20 * 20 +
+    training_data$engine_feature_11_21 * 21 +
+    training_data$engine_feature_11_22 * 22 +
+    training_data$engine_feature_11_23 * 23 +
+    training_data$engine_feature_11_24 * 24 +
+    training_data$engine_feature_11_25 * 25 +
+    training_data$engine_feature_11_26 * 26 +
+    training_data$engine_feature_11_27 * 27 +
+    training_data$engine_feature_11_28 * 28 +
+    training_data$engine_feature_11_29 * 29 +
+    training_data$engine_feature_11_30 * 30 +
+    training_data$engine_feature_11_31 * 31 +
+    training_data$engine_feature_11_32 * 32 +
+    training_data$engine_feature_11_33 * 33 +
+    training_data$engine_feature_11_34 * 34 +
+    training_data$engine_feature_11_35 * 35 +
+    training_data$engine_feature_11_36 * 36 +
+    training_data$engine_feature_11_37 * 37 +
+    training_data$engine_feature_11_38 * 38 +
+    training_data$engine_feature_11_39 * 39 +
+    training_data$engine_feature_11_40 * 40 +
+    training_data$engine_feature_11_41 * 41 +
+    training_data$engine_feature_11_42 * 42 +
+    training_data$engine_feature_11_43 * 43 +
+    training_data$engine_feature_11_44 * 44 +
+    training_data$engine_feature_11_45 * 45 +
+    training_data$engine_feature_11_46 * 46 +
+    training_data$engine_feature_11_47 * 47 +
+    training_data$engine_feature_11_48 * 48) / 100
 
 # training_data = training_data[-c(16:63)]
 
