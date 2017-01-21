@@ -67,14 +67,15 @@ test_data$vehicle_type = factor(test_data$vehicle_type)
 # Binning/Discretization
 
 # column creation
-training_data$engine_feature_14_mean <- (
+training_data$engine_feature_14mean <- (
   training_data$engine_feature_14_1 * 1 +
     training_data$engine_feature_14_2 * 2 +
     training_data$engine_feature_14_3 * 3 +
     training_data$engine_feature_14_4 * 4 +
     training_data$engine_feature_14_5 * 5) / 100
+training_data <- training_data[, -(training_data %>% colnames() %>% grep(pattern='engine_feature_14_'))]
 
-training_data$engine_feature_11_mean <- (
+training_data$engine_feature_11mean <- (
   training_data$engine_feature_11_1 * 1 +
     training_data$engine_feature_11_2 * 2 +
     training_data$engine_feature_11_3 * 3 +
@@ -123,6 +124,7 @@ training_data$engine_feature_11_mean <- (
     training_data$engine_feature_11_46 * 46 +
     training_data$engine_feature_11_47 * 47 +
     training_data$engine_feature_11_48 * 48) / 100
+training_data <- training_data[, -(training_data %>% colnames() %>% grep(pattern='engine_feature_11_'))]
 
 # training_data = training_data[-c(16:63)]
 
