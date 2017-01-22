@@ -263,33 +263,24 @@ cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5,
                         classProbs = TRUE,
                         allowParallel=T)
 
-
-# xgb.grid <- expand.grid(nrounds = 100,
-#                         eta = 0.3,
-#                         max_depth = 2,
+# xgb.grid <- expand.grid(nrounds =  1000,
+#                         eta = 0.01,
+#                         max_depth = 4,
 #                         subsample = 1,
-#                         min_child_weight=1,
+#                         min_child_weight= 0.2,
 #                         gamma =  0,
-#                         colsample_bytree = 0.6
-#                         
+#                         colsample_bytree = 0.4
 # )
 
-
-# cv.ctrl <- trainControl(method = "repeatedcv", repeats = 3, number = 5, 
-#                         search = "random",
-#                         #summaryFunction = twoClassSummary,
-#                         classProbs = TRUE,
-#                         allowParallel=T)
-
-
 xgb.grid <- expand.grid(nrounds =  1000,
-                        eta = 0.01,
-                        max_depth = 4,
-                        subsample = 1,
+                        eta = c(0.01, 0.001, 0.1),
+                        max_depth = c(4,8),
+                        subsample = c(0.5,0.75,1),
                         min_child_weight= 0.2,
                         gamma =  0,
-                        colsample_bytree = 0.4
+                        colsample_bytree = c(0.4,0.6,0.8)
 )
+
 
 xgb_tune <-train(CarInsurance ~.^2,
                  data=training_data,
@@ -298,7 +289,7 @@ xgb_tune <-train(CarInsurance ~.^2,
                  tuneGrid=xgb.grid,
                  verbose=1,
                  printEveryN = 100,
-                 metric="Accuracy",
+                 metric="ROC",
                  nthread = 26,
                  na.action = na.pass
 )
@@ -314,6 +305,6 @@ predictions$prediction = as.character(as.numeric(predictions$prediction)-1)
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="prediction_dmc1_dataRtists_5.csv", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc1_dataRtists_6.csv", row.names=FALSE)
 
 print(Sys.time() - start_time)

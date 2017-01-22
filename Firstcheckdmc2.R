@@ -27,6 +27,7 @@ rm(list=ls())
 
 # For reasons of traceability you must use a fixed seed
 set.seed(42) # do NOT CHANGE this seed
+start_time = Sys.time()
 
 
 ##############
@@ -74,6 +75,14 @@ training_data$engine_feature_14mean <- (
     training_data$engine_feature_14_4 * 4 +
     training_data$engine_feature_14_5 * 5) / 100
 training_data <- training_data[, -(training_data %>% colnames() %>% grep(pattern='engine_feature_14_'))]
+
+test_data$engine_feature_14mean <- (
+  test_data$engine_feature_14_1 * 1 +
+    test_data$engine_feature_14_2 * 2 +
+    test_data$engine_feature_14_3 * 3 +
+    test_data$engine_feature_14_4 * 4 +
+    test_data$engine_feature_14_5 * 5) / 100
+
 
 training_data$engine_feature_11mean <- (
   training_data$engine_feature_11_1 * 1 +
@@ -124,7 +133,59 @@ training_data$engine_feature_11mean <- (
     training_data$engine_feature_11_46 * 46 +
     training_data$engine_feature_11_47 * 47 +
     training_data$engine_feature_11_48 * 48) / 100
-training_data <- training_data[, -(training_data %>% colnames() %>% grep(pattern='engine_feature_11_'))]
+#training_data <- training_data[, -(training_data %>% colnames() %>% grep(pattern='engine_feature_11_'))]
+
+
+
+test_data$engine_feature_11mean <- (
+  test_data$engine_feature_11_1 * 1 +
+    test_data$engine_feature_11_2 * 2 +
+    test_data$engine_feature_11_3 * 3 +
+    test_data$engine_feature_11_4 * 4 +
+    test_data$engine_feature_11_5 * 5 +
+    test_data$engine_feature_11_6 * 6 +
+    test_data$engine_feature_11_7 * 7 +
+    test_data$engine_feature_11_8 * 8 +
+    test_data$engine_feature_11_9 * 9 +
+    test_data$engine_feature_11_10 * 10 +
+    test_data$engine_feature_11_11 * 11 +
+    test_data$engine_feature_11_12 * 12 +
+    test_data$engine_feature_11_13 * 13 +
+    test_data$engine_feature_11_14 * 14 +
+    test_data$engine_feature_11_15 * 15 +
+    test_data$engine_feature_11_16 * 16 +
+    test_data$engine_feature_11_17 * 17 +
+    test_data$engine_feature_11_18 * 18 +
+    test_data$engine_feature_11_19 * 19 +
+    test_data$engine_feature_11_20 * 20 +
+    test_data$engine_feature_11_21 * 21 +
+    test_data$engine_feature_11_22 * 22 +
+    test_data$engine_feature_11_23 * 23 +
+    test_data$engine_feature_11_24 * 24 +
+    test_data$engine_feature_11_25 * 25 +
+    test_data$engine_feature_11_26 * 26 +
+    test_data$engine_feature_11_27 * 27 +
+    test_data$engine_feature_11_28 * 28 +
+    test_data$engine_feature_11_29 * 29 +
+    test_data$engine_feature_11_30 * 30 +
+    test_data$engine_feature_11_31 * 31 +
+    test_data$engine_feature_11_32 * 32 +
+    test_data$engine_feature_11_33 * 33 +
+    test_data$engine_feature_11_34 * 34 +
+    test_data$engine_feature_11_35 * 35 +
+    test_data$engine_feature_11_36 * 36 +
+    test_data$engine_feature_11_37 * 37 +
+    test_data$engine_feature_11_38 * 38 +
+    test_data$engine_feature_11_39 * 39 +
+    test_data$engine_feature_11_40 * 40 +
+    test_data$engine_feature_11_41 * 41 +
+    test_data$engine_feature_11_42 * 42 +
+    test_data$engine_feature_11_43 * 43 +
+    test_data$engine_feature_11_44 * 44 +
+    test_data$engine_feature_11_45 * 45 +
+    test_data$engine_feature_11_46 * 46 +
+    test_data$engine_feature_11_47 * 47 +
+    test_data$engine_feature_11_48 * 48) / 100
 
 # training_data = training_data[-c(16:63)]
 
@@ -142,7 +203,7 @@ formula_with_most_important_attributes
 
 #Create formula manually
 eng_feature_cols <- colnames(training_data)[training_data %>% colnames() %>% grepl(pattern='engine_feature')]
-other_cols <- colnames(training_data[, -ncol(training_data)])[!(training_data[, -ncol(training_data)] %>% colnames() %>% grepl(pattern='engine_feature'))]
+other_cols <- colnames(training_data[, -(ncol(training_data)-2)])[!(training_data[, -(ncol(training_data)-2)] %>% colnames() %>% grepl(pattern='engine_feature'))]
 my_formula = paste(
   paste(
     unlist(
@@ -166,20 +227,28 @@ cv.ctrl <- trainControl(method = "repeatedcv", repeats = 4, number = 5,
                         classProbs = TRUE,
                         allowParallel=T)
 
-xgb.grid <- expand.grid(nrounds = 10*(10:100),
-                        eta = seq(0.1, 0.9, by = 0.05),
-                        max_depth = c(4,6,8),
-                        subsample = 0.6,
-                        min_child_weight=1,
-                        gamma =  seq(0, 0.9, by = 0.1),
-                        colsample_bytree = 0.8
-                        
+xgb.grid <- expand.grid(nrounds =  c(500,1000),
+                        eta = c(0.01, 0.001),
+                        max_depth = c(4,8),
+                        subsample = c(0.5,0.75,1),
+                        min_child_weight= 0.2,
+                        gamma =  0,
+                        colsample_bytree = c(0.4,0.6,0.8)
 )
+
+# xgb.grid <- expand.grid(nrounds =  1000,
+#                         eta = 0.01,
+#                         max_depth = 4,
+#                         subsample = 1,
+#                         min_child_weight= 0.2,
+#                         gamma =  0,
+#                         colsample_bytree = 0.4
+# )
 xgb_tune <-train(formula_with_most_important_attributes,
                  data=training_data,
                  method="xgbTree",
                  trControl=cv.ctrl,
-                 #tuneGrid=xgb.grid,
+                 tuneGrid=xgb.grid,
                  verbose=T,
                  metric="Accuracy",
                  nthread = 26,
@@ -193,21 +262,10 @@ print(max(xgb_tune$results[8]))
 # 5. Predict Classes in Test Data
 prediction_classes = predict.train(object=xgb_tune, newdata=test_data, na.action=na.pass)
 predictions = data.frame(id=test_data$system_readout_id, prediction=prediction_classes)
-predictions
+# predictions
 
 ######################################################
 # 6. Export the Predictions
-write.csv(predictions, file="prediction_dmc2_dataRtists_1.csv", row.names=FALSE)
+write.csv(predictions, file="prediction_dmc2_dataRtists_5.csv", row.names=FALSE)
+print(Sys.time() - start_time)
 
-######################################################
-# 7. Upload the Predictions and the Corresponding R Script on DMC Manager
-# https://dmc.dss.in.tum.de/dmc/
-# Login with TUM login data ("TUM-Kennung")
-#
-# Maxium number of submissions: 10
-#
-# Possible errors that could occur:
-# - Wrong column names
-# - Unknown IDs (if not in Test Data)
-# - Missing IDs (if in Test Data but not in Predictions)
-# - Wrong file format
